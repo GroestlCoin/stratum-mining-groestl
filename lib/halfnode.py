@@ -218,7 +218,7 @@ class CTransaction(object):
  
     def calc_sha256(self):
         if self.sha256 is None:
-            self.sha256 = uint256_from_str(SHA256.new(SHA256.new(self.serialize()).digest()).digest())
+            self.sha256 = uint256_from_str(SHA256.new(self.serialize()).digest()) #uint256_from_str(SHA256.new(SHA256.new(self.serialize()).digest()).digest())
         return self.sha256
     
     def is_valid(self):
@@ -327,7 +327,7 @@ class CBlock(object):
                 r.append(struct.pack("<I", self.nTime))
                 r.append(struct.pack("<I", self.nBits))
                 r.append(struct.pack("<I", self.nNonce))
-                self.blake = uint256_from_str(blake_hash.getPoWHash(''.join(r)).digest())
+                self.blake = uint256_from_str(blake_hash.getPoWHash80(''.join(r)))
             return self.blake
     elif settings.COINDAEMON_ALGO == 'keccak':
         def calc_sha3(self):
@@ -375,7 +375,7 @@ class CBlock(object):
         else:
             self.calc_sha256()
 
-        target = uint256_from_compact(self.nBits)
+		target = uint256_from_compact(self.nBits)
 
         if settings.COINDAEMON_ALGO == 'scrypt':
             if self.scrypt > target:
@@ -401,6 +401,7 @@ class CBlock(object):
             tx.sha256 = None
             if not tx.is_valid():
                 return False
+
             tx.calc_sha256()
             hashes.append(ser_uint256(tx.sha256))
         
@@ -412,7 +413,8 @@ class CBlock(object):
             hashes = newhashes
         
         if uint256_from_str(hashes[0]) != self.hashMerkleRoot:
-            return False
+	    	return False
+
         return True
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))

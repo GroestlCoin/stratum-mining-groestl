@@ -14,7 +14,7 @@ elif settings.COINDAEMON_ALGO == 'max':
     import max_hash
     from sha3 import sha3_256
 elif settings.COINDAEMON_ALGO == 'blake':
-     import blake_ghash
+     import blake_hash
 elif settings.COINDAEMON_ALGO == 'skeinhash':
     import skeinhash
 elif settings.COINDAEMON_ALGO == 'keccak':
@@ -156,18 +156,7 @@ class TemplateRegistry(object):
     
     def diff_to_target(self, difficulty):
         '''Converts difficulty to target'''
-        if settings.COINDAEMON_ALGO == 'scrypt' or 'scrypt-jane':
-            diff1 = 0x0000ffff00000000000000000000000000000000000000000000000000000000
-        elif settings.COINDAEMON_ALGO == 'quark':
-            diff1 = 0x000000ffff000000000000000000000000000000000000000000000000000000
-        elif settings.COINDAEMON_ALGO == 'max':
-            diff1 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000
-        elif settings.COINDAEMON_algo == 'blake':
-             diff1 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000
-        elif settings.COINDAEMON_ALGO == 'keccak':
-            diff1 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000
-        else:
-            diff1 = 0x00000000ffff0000000000000000000000000000000000000000000000000000
+        diff1 =      0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff #0000000000000000000000000000000000000000000000000000 / 256
         return diff1 / difficulty
     
     def get_job(self, job_id):
@@ -262,7 +251,7 @@ class TemplateRegistry(object):
             hash_bin = max_hash.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))
             hash_bin = sha3_256(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ])).digest()[0:33]
         elif settings.COINDAEMON_ALGO == 'blake':
-             hash_bin = blake_hash.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))#.digest()[0:33]
+             hash_bin = blake_hash.getPoWHash80(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))#.digest()[0:33]
 	elif settings.COINDAEMON_ALGO == 'skeinhash':
             hash_bin = skeinhash.skeinhash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))
         elif settings.COINDAEMON_ALGO == 'keccak':
@@ -284,10 +273,13 @@ class TemplateRegistry(object):
             #header_hex = header_hex+"000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000"
         else: pass
                  
+        #target_user = self.diff_to_target(difficulty)
+
         target_user = self.diff_to_target(difficulty)
+        #print(self.diff_to_target(target_user))
+
         if hash_int > target_user:
-            raise SubmitException("Share is above target. Hash: %s",
-                    scrypt_hash_hex)
+            raise SubmitException("Share is above target. Hash: %s", scrypt_hash_hex)
 
         # Mostly for debugging purposes
         target_info = self.diff_to_target(100000)
@@ -304,20 +296,21 @@ class TemplateRegistry(object):
 
             # Reverse the header and get the potential block hash (for scrypt only) 
             if settings.COINDAEMON_ALGO == 'max':
-                block_hash_bin = sha3_256(''.join([ header_bin[i*4:i*4+4][::-1]
-                    for i in range(0, 20) ]) + str(int(ntime, 16))).hexdigest()
+                block_hash_bin =                 sha3_256(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ])).digest()[0:33]
+                block_hash_bin = sha3_256(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]) + str(int(ntime, 16))).hexdigest()
             elif settings.COINDAEMON_ALGO == 'blake':
-            	 block_hash_bin = blake_hash.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1]
-                    for i in range(0, 20) ]) + str(int(ntime, 16))).hexdigest()
+            	 block_hash_bin = blake_hash.getPoWHash80(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ])) #.digest()[0:33] #''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]) + str(int(ntime, 16))).hexdigest()
             elif settings.COINDAEMON_ALGO == 'keccak':
                 s = sha3.SHA3256()
                 ntime1 = str(int(ntime, 16))
                 s.update(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]) + ntime1)
 	    else:
 	        block_hash_bin = util.doublesha(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))
+
             block_hash_hex = block_hash_bin[::-1].encode('hex_codec')
             if settings.COINDAEMON_ALGO != 'max':
             	block_hash_hex = hash_bin[::-1].encode('hex_codec')
+
             # 6. Finalize and serialize block object 
             job.finalize(merkle_root_int, extranonce1_bin, extranonce2_bin, int(ntime, 16), int(nonce, 16))
             

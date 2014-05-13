@@ -186,13 +186,7 @@ def address_to_pubkeyhash(addr):
 
     ver = addr[0]
     cksumA = addr[-4:]
-    if settings.COINDAEMON_ALGO != 'max':
-        cksumB = doublesha(addr[:-4])[:4]
-        #TODO: We should clean this up so that it works with not Keccek implementations too.
-    elif settings.COINDAEMON_ALcksumB = sha3_256(addr[:-4]).digest()[:4]GO == 'blake':
-        cksumB = blake_hash.getPoWHash(addr[:-4]).digest()[:4]
-    else:
-        cksumB = sha3_256(addr[:-4]).digest()[:4]
+    cksumB = blake_hash.getPoWHash21(addr[:-4])[:4] #LcksumB = sha3_256(addr[:-4]).digest()[:4]
     
 
     if cksumA != cksumB:
